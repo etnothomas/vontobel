@@ -1,0 +1,8 @@
+{
+    "partnerid": "partner2",
+    "targetType": "email",
+    "targetFormat": "text",
+    "targetDestination": "partner2@test.com",
+    "outputFormat": "MailFormat",
+    "fieldsFilter": "MailFilter"
+}

@@ -1,0 +1,14 @@
+{
+    "partnerid": "partner1",
+    "targetType": "file",
+    "targetFormat": "xml",
+    "targetDestination": "/Users/thomasjensen/projects/net-test/partner1/",
+    "outputFormat": "InstrumentNotificationXmlFormat",
+    "fieldsFilter": "NotificationFilter",
+    "messageFilter": {
+        "property": "Events.EventType",
+        "value": "9098",
+        "operator": "Equals"
+    }
+
+}

@@ -1,0 +1,27 @@
+using VontobelTest.src.Formatters;
+using VontobelTest.src.filters;
+
+namespace VontobelTest.src.models
+{
+    public record Partner<T>(String Id, ITarget target, IFormat<T> Format, IFilter Filter, MessageFilter MFilter)
+    {
+        public QueueMessage<T>? FormatMessage(IBTTermSheet message)
+        {
+            if (!ShouldReceiveMessage(message))
+            {
+                Console.WriteLine($"Message does not match filter criteria for partner {Id}");
+                return null;
+            }
+            return new QueueMessage<T>(Format.FormatMessage(Filter.FilterMessage(message)), target);
+        }
+
+        private bool ShouldReceiveMessage(IBTTermSheet message)
+        {
+            if (MFilter.GetType() == typeof(EmptyMessageFilter))
+            {
+                return true;
+            }
+            return FieldsMatcher.Match(message, MFilter.FieldName, MFilter.FieldValue, MFilter.Operator);
+        }
+    };
+}
