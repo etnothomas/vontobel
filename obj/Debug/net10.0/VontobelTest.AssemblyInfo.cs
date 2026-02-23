@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VontobelTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f5e9c0db4a81e5cef6cba6377e5a23363093ef15")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c4f1f5cf053e92f873a3529654c518707a13da9")]
 [assembly: System.Reflection.AssemblyProductAttribute("VontobelTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VontobelTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,20 +1,24 @@
 using System.Text.Json.Nodes;
 using VontobelTest.src.models;
 using System.Xml;
-using VontobelTest.src.Formatters;
+using VontobelTest.src.formatters;
 using VontobelTest.src.filters;
+using Microsoft.Extensions.Logging;
+
 
 namespace VontobelTest.src.services
 {
-    public class UserService : IUserService
+    public class PartnerService : IPartnerService
     {
         private readonly string _partnerConfigDirectory;
+        private readonly ILogger<PartnerService> _logger;
         List<Partner<string>> stringPartners = [];
         List<Partner<XmlDocument>> xmlPartners = [];
 
-        public UserService(string partnerConfigDirectory)
+        public PartnerService(string partnerConfigDirectory, ILogger<PartnerService> logger)
         {
             _partnerConfigDirectory = partnerConfigDirectory;
+            _logger = logger;
             InitializePartners();
         }
         public List<Partner<T>> GetPartners<T>()
@@ -54,7 +58,7 @@ namespace VontobelTest.src.services
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Failed to read partner config '{file}': {ex.Message}");
+                    _logger.LogError(ex, "Failed to read partner config '{File}'", file);
                 }
             }
 
@@ -103,7 +107,7 @@ namespace VontobelTest.src.services
             var messageFilter = GetMessageFilter(config) ?? new EmptyMessageFilter();
 
             var target = GetTarget(targetType, targetDestination, targetFormat);
-            var format = GetMailFormat(outputFormat);
+            var format = GetFormatter<string>(outputFormat);
             var filterImplementation = GetFieldsFilter(filter);
 
             return new Partner<string>(partnerId, target, format, filterImplementation, messageFilter);
@@ -119,7 +123,7 @@ namespace VontobelTest.src.services
             var messageFilter = GetMessageFilter(config) ?? new EmptyMessageFilter();
 
             var target = GetTarget(targetType, targetDestination, targetFormat);
-            var format = GetXmlFormat(outputFormat);
+            var format = GetFormatter<XmlDocument>(outputFormat);
             var filterImplementation = GetFieldsFilter(fieldsFilter);
 
             return new Partner<XmlDocument>(partnerId, target, format, filterImplementation, messageFilter);
@@ -135,32 +139,37 @@ namespace VontobelTest.src.services
             };
         }
 
-        private static IFormat<XmlDocument> GetXmlFormat(string format)
+        private static IFormat<T> GetFormatter<T>(string format)
         {
-            return format switch
+            try
             {
-                "InstrumentNotificationXmlFormat" => new InstrumentNotificationXmlFormat(),
-                _ => throw new ArgumentException($"Unsupported output format given: {format}"),
-            };
-        }
+                Type t = Type.GetType(format) ?? throw new ArgumentException($"Failed to create instance of type: {format}");
+                var obj = Activator.CreateInstance(t);
+                if (obj is IFormat<T> formatInstance)
+                    return formatInstance;
 
-        private static IFormat<string> GetMailFormat(string format)
-        {
-            return format switch
+                throw new ArgumentException($"Created instance of type '{format}' does not implement IFormat<{typeof(T).Name}>");
+            }
+            catch (Exception ex)
             {
-                "MailFormat" => new MailFormat(),
-                _ => throw new ArgumentException($"Unsupported output format given: {format}"),
-            };
+                throw new ArgumentException($"Failed to create instance of type: {format}", ex);
+            }
         }
 
         private static IFilter GetFieldsFilter(string filter)
         {
-            switch (filter)
+             try
             {
-                case "NotificationFilter": return new InstrumentNotificationFilter();
-                case "MailFilter": return new MailFilter();
-                default: 
-                    throw new ArgumentException($"Unsupported filter given: {filter}");
+                Type t = Type.GetType(filter) ?? throw new ArgumentException($"Failed to create instance of type: {filter}");
+                var obj = Activator.CreateInstance(t);
+                if (obj is IFilter filterInstance)
+                    return filterInstance;
+
+                throw new ArgumentException($"Created instance of type '{filter}' does not implement IFilter");
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"Failed to create instance of type: {filter}", ex);
             }
         }
 

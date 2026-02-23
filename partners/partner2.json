@@ -3,6 +3,6 @@
     "targetType": "email",
     "targetFormat": "text",
     "targetDestination": "partner2@test.com",
-    "outputFormat": "MailFormat",
-    "fieldsFilter": "MailFilter"
+    "outputFormat": "VontobelTest.src.formatters.SimpleMailFormat",
+    "fieldsFilter": "VontobelTest.src.filters.SimpleMailFilter"
 }

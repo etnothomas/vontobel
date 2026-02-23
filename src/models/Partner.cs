@@ -1,4 +1,4 @@
-using VontobelTest.src.Formatters;
+using VontobelTest.src.formatters;
 using VontobelTest.src.filters;
 
 namespace VontobelTest.src.models
@@ -21,7 +21,7 @@ namespace VontobelTest.src.models
             {
                 return true;
             }
-            return FieldsMatcher.Match(message, MFilter.FieldName, MFilter.FieldValue, MFilter.Operator);
+            return FieldsMatcher.Match(message, MFilter.FieldName, MFilter.Operator, MFilter.FieldValue);
         }
     };
 }

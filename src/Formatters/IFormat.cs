@@ -1,11 +1,10 @@
-using System.Reflection.Metadata.Ecma335;
-using VontobelTest.src.models;
+using System.Text.Json.Nodes;
 
-namespace VontobelTest.src.Formatters
+namespace VontobelTest.src.formatters
 {
 
     public interface IFormat<T>
     {
-        T FormatMessage(Dictionary<string, string> message);
+        T FormatMessage(JsonObject message);
     }
 }

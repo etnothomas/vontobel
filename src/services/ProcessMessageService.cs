@@ -1,33 +1,36 @@
 using System.Xml;
 using VontobelTest.src.models;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace VontobelTest.src.services
 {
     public class ProcessMessageService
     {
-        private readonly IUserService _userService;
+        private readonly IPartnerService _partnerService;
         private readonly ISenderService _senderService;
+        private readonly ILogger<ProcessMessageService> _logger;
 
         private BlockingCollection<IBTTermSheet> _messageQueue = [];
 
-        public ProcessMessageService(IUserService userService, ISenderService senderService, CancellationToken ct)
+        public ProcessMessageService(IPartnerService partnerService, ISenderService senderService, ILogger<ProcessMessageService> logger, CancellationToken ct)
         {
-            _userService = userService;
+            _partnerService = partnerService;
             _senderService = senderService;
+            _logger = logger;
             _ = StartProcessing(ct);
         }
-        private void ProcessMessage(IBTTermSheet message)
+        private void ProcessMessageForAllPartners(IBTTermSheet message)
         {
             ProcessMessage<XmlDocument>(message);
             ProcessMessage<string>(message);
         }
         private void ProcessMessage<T>(IBTTermSheet message)
         {
-            foreach (var partner in _userService.GetPartners<T>())
+            foreach (var partner in _partnerService.GetPartners<T>())
             {
                 QueueMessage<T>? formattedMessage = partner.FormatMessage(message);
-                Console.WriteLine($"Processing message for partner {partner.Id} with target {partner.target.TargetType} and format {partner.target.TargetFormat}");  
+                _logger.LogInformation("Processing message for partner {PartnerId} with target {TargetType} and format {TargetFormat}", partner.Id, partner.target.TargetType, partner.target.TargetFormat);
                 if (formattedMessage == null)
                 {
                     continue;
@@ -45,12 +48,12 @@ namespace VontobelTest.src.services
                     try
                     {
                         var message = _messageQueue.Take(ct);
-                        Console.WriteLine($"Dequeued message for processing: ${message}");
-                        ProcessMessage(message);
+                        _logger.LogInformation("Dequeued message for processing: {@Message}", message);
+                        ProcessMessageForAllPartners(message);
                     }
                     catch (OperationCanceledException)
                     {
-                        // Gracefully exit on cancellation
+                        _logger.LogInformation("ProcessMessageService is stopping due to cancellation.");
                         break;
                     }
                 }

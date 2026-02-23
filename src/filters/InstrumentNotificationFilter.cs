@@ -1,17 +1,19 @@
+using System.Text.Json.Nodes;
 using VontobelTest.src.models;
 
 namespace VontobelTest.src.filters
 {
     public class InstrumentNotificationFilter : IFilter
     {
-        public Dictionary<string, string> FilterMessage(IBTTermSheet message)
+        public JsonObject FilterMessage(IBTTermSheet message)
         {
-            return new Dictionary<string, string>
+            var obj = new JsonObject
             {
-                { "Timespan", DateTime.UtcNow.ToString("o") },
-                { "ISIN", GetIsin(message) },
-
+                ["Timespan"] = JsonValue.Create(DateTime.UtcNow.ToString("o")),
+                ["ISIN"] = JsonValue.Create(GetIsin(message)),
             };
+
+            return obj;
         }
 
         private string GetIsin(IBTTermSheet message)

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using VontobelTest.src.senders;
 using System.Xml;
 using VontobelTest.src.models;
@@ -6,18 +7,23 @@ namespace VontobelTest.src.services
 {
     public class SenderService : ISenderService
     {
-        private readonly ISender<XmlDocument> _xmlFileSender = new XmlFileSender();
-        private readonly ISender<string> _emailSender = new EmailSender();
+        private readonly ISender<XmlDocument> _xmlFileSender;
+        private readonly ISender<string> _emailSender;
 
-        public SenderService(CancellationToken ct)
+        private readonly ILogger<SenderService> _logger;
+
+        public SenderService(XmlFileSender xmlFileSender, EmailSender emailSender, CancellationToken ct, ILogger<SenderService> logger)
         {
+            _logger = logger;
+            _xmlFileSender = xmlFileSender;
+            _emailSender = emailSender;
             _ = InitializeSenders(ct);
         }
 
         private async Task InitializeSenders(CancellationToken ct)
         {
-            var xmlFileSenderTask = _xmlFileSender.StartListener(ct);
-            var emailSenderTask = _emailSender.StartListener(ct);
+            Task xmlFileSenderTask = _xmlFileSender.StartListener(ct);
+            Task emailSenderTask = _emailSender.StartListener(ct);
             await Task.WhenAll(xmlFileSenderTask, emailSenderTask);
         }
 
@@ -32,7 +38,7 @@ namespace VontobelTest.src.services
                     _emailSender.EnqueueMessage(emailMessage);
                     break;
                 default:
-                    Console.Error.Write("Unsupported message type or target format");
+                    _logger.LogError("Unsupported message type or target format");
                     break;
             }
         }

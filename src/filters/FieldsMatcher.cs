@@ -9,15 +9,12 @@ namespace VontobelTest.src.filters
             var propValue = GetPropertyValue(message, property);
             if (propValue == null) return false;
 
-            switch (operatorType)
+            return operatorType switch
             {
-                case "Equals":
-                    return propValue.Equals(value);
-                case "NotEquals":
-                    return !propValue.Equals(value);
-                default:
-                    throw new ArgumentException($"Unsupported operator type: {operatorType}");
-            }
+                "Equals" => propValue.Equals(value),
+                "NotEquals" => !propValue.Equals(value),
+                _ => throw new ArgumentException($"Unsupported operator type: {operatorType}"),
+            };
         }
         private static object GetPropertyValue(object src, string propName)
         {

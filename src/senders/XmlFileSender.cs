@@ -1,6 +1,7 @@
 using System.Xml;
 using System.Collections.Concurrent;
 using VontobelTest.src.models;
+using Microsoft.Extensions.Logging;
 
 namespace VontobelTest.src.senders
 {
@@ -8,6 +9,13 @@ namespace VontobelTest.src.senders
     {   
         
         private BlockingCollection<QueueMessage<XmlDocument>> blockingQueue = [];
+
+        private readonly ILogger<XmlFileSender> _logger;
+
+        public XmlFileSender(ILogger<XmlFileSender> logger, CancellationToken ct)
+        {
+            _logger = logger;
+        }
         public async Task StartListener(CancellationToken ct)
         {            
             await Task.Run(() =>
@@ -17,39 +25,37 @@ namespace VontobelTest.src.senders
                     try
                     {
                         var message = blockingQueue.Take(ct);
-                        Console.WriteLine($"Dequeued message: ${message}");
+                        _logger.LogInformation("Dequeued message: {@Message}", message);
                         Write(message.Target.Target, message.Message);
                     }
                     catch (OperationCanceledException)
                     {
-                        // Gracefully exit on cancellation
+                        _logger.LogInformation("XmlFileSender listener is stopping due to cancellation.");
                         break;
                     }
                 }
             }, ct);
-            
         }
 
-        private static void Write(string directory, XmlDocument message)
+        private void Write(string directory, XmlDocument message)
         {
             try {
                 System.IO.Directory.CreateDirectory(directory);
                 string fileName = $"message_{DateTime.UtcNow:yyyyMMddHHmmssfff}.xml";
                 var path = Path.Combine(directory, fileName);
                 message.Save(path);
-                Console.WriteLine($"Wrote message to directory: ${directory}, message: ${message}");
+                _logger.LogInformation("Wrote message to directory: {Directory}, message: {Message}", directory, message.OuterXml);
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to write message: {ex}");
+                _logger.LogError(ex, "Failed to write message");
             }
         }
 
         public void EnqueueMessage(QueueMessage<XmlDocument> queueMessage)
         {
             blockingQueue.Add(queueMessage);
-            Console.WriteLine($"Enqueued message: ${queueMessage}");
-
+            _logger.LogInformation("Enqueued message: {@QueueMessage}", queueMessage);
         }
 
     }

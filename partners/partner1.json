@@ -3,11 +3,11 @@
     "targetType": "file",
     "targetFormat": "xml",
     "targetDestination": "/Users/thomasjensen/projects/net-test/partner1/",
-    "outputFormat": "InstrumentNotificationXmlFormat",
-    "fieldsFilter": "NotificationFilter",
+    "outputFormat": "VontobelTest.src.formatters.InstrumentNotificationXmlFormat",
+    "fieldsFilter": "VontobelTest.src.filters.InstrumentNotificationFilter",
     "messageFilter": {
-        "property": "Events.EventType",
-        "value": "9098",
+        "property": "Events.Event.EventType",
+        "value": "9097",
         "operator": "Equals"
     }
 

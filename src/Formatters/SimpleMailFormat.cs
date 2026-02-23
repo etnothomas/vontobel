@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using VontobelTest.src.models;
+using System.Text.Json.Nodes;
 
-namespace VontobelTest.src.Formatters
+namespace VontobelTest.src.formatters
 {
-    public class MailFormat : IFormat<string>
+    public class SimpleMailFormat : IFormat<string>
     {
-        public string FormatMessage(Dictionary<string, string> input)
+        public string FormatMessage(JsonObject input)
         {
             if (input == null || input.Count == 0)
                 return string.Empty;

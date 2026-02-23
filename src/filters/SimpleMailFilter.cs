@@ -1,18 +1,22 @@
+using System.Text.Json.Nodes;
 using VontobelTest.src.models;
+using System.Text.Json;
 
 namespace VontobelTest.src.filters
 {
-    public class MailFilter : IFilter
+    public class SimpleMailFilter : IFilter
     {
-        public Dictionary<string, string> FilterMessage(IBTTermSheet message)
+        public JsonObject FilterMessage(IBTTermSheet message)
         {
-            return new Dictionary<string, string>
+            var obj = new JsonObject
             {
-                { "ProductNameFull", GetProductNameFull(message) },
-                { "IBTTypeCode", GetIBTTypeCode(message).ToString() },
-                { "EventType", GetEventType(message).ToString() },
-                { "Isin", GetIsin(message) },
+                ["ProductNameFull"] = JsonValue.Create(GetProductNameFull(message)),
+                ["IBTTypeCode"] = JsonValue.Create(GetIBTTypeCode(message)),
+                ["EventType"] = JsonValue.Create(GetEventType(message)),
+                ["Isin"] = JsonValue.Create(GetIsin(message)),
             };
+
+            return obj;
         }
 
         private string GetProductNameFull(IBTTermSheet message)
