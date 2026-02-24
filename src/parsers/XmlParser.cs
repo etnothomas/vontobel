@@ -1,4 +1,5 @@
 using System.Xml.Serialization;
+using System.IO;
 
 namespace VontobelTest.src.Parsers
 {
@@ -10,8 +11,10 @@ namespace VontobelTest.src.Parsers
                 throw new ArgumentException("XML input is empty", nameof(file));
 
             var serializer = new XmlSerializer(typeof(T));
-            using var reader = new StreamReader(file);
-            return (T)serializer.Deserialize(reader)!;
+            using (StreamReader reader = new(file))
+            {
+                return (T)serializer.Deserialize(reader)!;
+            };
         }
 
     }

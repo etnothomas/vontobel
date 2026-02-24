@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using VontobelTest.src.models;
 using Microsoft.Extensions.Logging;
+using System.Net.Mail;
 
 namespace VontobelTest.src.senders
 {
@@ -17,7 +18,7 @@ namespace VontobelTest.src.senders
         }
         public async Task StartListener(CancellationToken ct)
         {            
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 while (!ct.IsCancellationRequested)
                 {
@@ -25,33 +26,48 @@ namespace VontobelTest.src.senders
                     {
                         var message = blockingQueue.Take(ct);
                         _logger.LogInformation("Dequeued message: {@Message}", message);
-                        SendEmail(message.Target.Target, message.Message);
+                        if (message.Target is not null) {
+                           int returnCode = await SendEmail(message.Target.Target, message.Message);
+                           if (returnCode == 0) throw new SmtpException($"mail failed for message {message}");
+                        }
+                        else throw new NullReferenceException($"Target is null for message {message}");
+                    }
+                    catch (SmtpException s){
+                        _logger.LogError("Failed to send mail. Error: {s}", s);
+                    }
+                    catch (NullReferenceException n){
+                        _logger.LogError("Target is null for message. Error: {n}", n);
                     }
                     catch (OperationCanceledException)
                     {
                         _logger.LogInformation("Email sender listener is stopping due to cancellation.");
-                        break;
                     }
                 }
             }, ct);
         }
 
-        private void SendEmail(string emailAddress, string message)
+
+
+        private async Task<int> SendEmail(string emailAddress, string message)
         {
-            try {
-                // Simulate email sending
-                _logger.LogInformation("Simulating sending email to: {EmailAddress}, message: {Message}", emailAddress, message);
-            }
-            catch (Exception ex)
+            return await Task.Run(() => 
             {
-                _logger.LogError(ex, "Failed to send email");
-            }
+                try {
+                    // Simulate email sending
+                    _logger.LogInformation("Simulating sending email to: {EmailAddress}, message: {Message}", emailAddress, message);
+                    return 1;
+                }
+                catch (Exception)
+                {
+                    return 0;
+                }
+            });
         }
 
         public void EnqueueMessage(QueueMessage<string> queueMessage)
         {
             blockingQueue.Add(queueMessage);
-            _logger.LogInformation("Enqueued message: {@QueueMessage}", queueMessage);
+            _logger.LogInformation("Enqueued message: {QueueMessage}", queueMessage);
         }
 
     }

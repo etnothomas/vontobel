@@ -26,12 +26,15 @@ namespace VontobelTest.src.senders
                     {
                         var message = blockingQueue.Take(ct);
                         _logger.LogInformation("Dequeued message: {@Message}", message);
-                        Write(message.Target.Target, message.Message);
+                        if (message.Target is not null) Write(message.Target.Target, message.Message);
+                        else throw new NullReferenceException($"Target is null for message {message}");
+                    }
+                    catch (NullReferenceException n){
+                        _logger.LogError("Target is null for message. Error: {n}", n);
                     }
                     catch (OperationCanceledException)
                     {
                         _logger.LogInformation("XmlFileSender listener is stopping due to cancellation.");
-                        break;
                     }
                 }
             }, ct);

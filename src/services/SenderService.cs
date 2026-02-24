@@ -29,12 +29,12 @@ namespace VontobelTest.src.services
 
         public void ProcessMessage<T>(Partner<T> partner, QueueMessage<T> message)
         {
-            switch((message, partner.target))
+            switch((message, partner.Target))
             {
-                case (QueueMessage<XmlDocument> xmlMessage, FileTarget _) when partner.target.TargetFormat == "xml":
+                case (QueueMessage<XmlDocument> xmlMessage, FileTarget _) when partner.Target.TargetFormat == "xml":
                     _xmlFileSender.EnqueueMessage(xmlMessage);
                     break;
-                case (QueueMessage<string> emailMessage, EmailTarget _) when partner.target.TargetFormat == "text":
+                case (QueueMessage<string> emailMessage, EmailTarget _) when partner.Target.TargetFormat == "text":
                     _emailSender.EnqueueMessage(emailMessage);
                     break;
                 default:

@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using Microsoft.Extensions.Logging;
 using VontobelTest.src.Parsers;
 using VontobelTest.src.services;

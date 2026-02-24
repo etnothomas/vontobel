@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using VontobelTest.src.extentions;
 using VontobelTest.src.models;
 
 namespace VontobelTest.src.filters
@@ -10,16 +11,11 @@ namespace VontobelTest.src.filters
             var obj = new JsonObject
             {
                 ["Timespan"] = JsonValue.Create(DateTime.UtcNow.ToString("o")),
-                ["ISIN"] = JsonValue.Create(GetIsin(message)),
+                ["ISIN"] = JsonValue.Create(message.GetIsin())
             };
 
             return obj;
         }
 
-        private string GetIsin(IBTTermSheet message)
-        {
-            return message?.Instrument?.InstrumentIds?.InstrumentId?.Find(i => i.IdSchemeCode == "I-")?.IdValue ?? string.Empty;
-            
-        }
     }
 }

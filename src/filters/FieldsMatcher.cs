@@ -1,3 +1,8 @@
+/* 
+Not original work, taken from stackoverflow, but forgot the link
+*/
+
+
 using VontobelTest.src.models;
 
 namespace VontobelTest.src.filters

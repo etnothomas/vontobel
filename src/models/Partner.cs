@@ -3,7 +3,7 @@ using VontobelTest.src.filters;
 
 namespace VontobelTest.src.models
 {
-    public record Partner<T>(String Id, ITarget target, IFormat<T> Format, IFilter Filter, MessageFilter MFilter)
+    public record Partner<T>(String Id, ITarget Target, IFormat<T> Format, IFilter Filter, MessageFilter MFilter)
     {
         public QueueMessage<T>? FormatMessage(IBTTermSheet message)
         {
@@ -12,7 +12,7 @@ namespace VontobelTest.src.models
                 Console.WriteLine($"Message does not match filter criteria for partner {Id}");
                 return null;
             }
-            return new QueueMessage<T>(Format.FormatMessage(Filter.FilterMessage(message)), target);
+            return new QueueMessage<T>(Format.FormatMessage(Filter.FilterMessage(message)), Target);
         }
 
         private bool ShouldReceiveMessage(IBTTermSheet message)

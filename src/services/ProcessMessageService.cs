@@ -2,6 +2,9 @@ using System.Xml;
 using VontobelTest.src.models;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using VontobelTest.src.db;
+using VontobelTest.src.extentions;
+
 
 namespace VontobelTest.src.services
 {
@@ -10,27 +13,33 @@ namespace VontobelTest.src.services
         private readonly IPartnerService _partnerService;
         private readonly ISenderService _senderService;
         private readonly ILogger<ProcessMessageService> _logger;
-
+        private readonly IEventRepo _eventRepo;
         private BlockingCollection<IBTTermSheet> _messageQueue = [];
 
-        public ProcessMessageService(IPartnerService partnerService, ISenderService senderService, ILogger<ProcessMessageService> logger, CancellationToken ct)
+        public ProcessMessageService(IPartnerService partnerService, ISenderService senderService, IEventRepo eventRepo, ILogger<ProcessMessageService> logger, CancellationToken ct)
         {
             _partnerService = partnerService;
             _senderService = senderService;
+            _eventRepo = eventRepo;
             _logger = logger;
             _ = StartProcessing(ct);
         }
         private void ProcessMessageForAllPartners(IBTTermSheet message)
         {
-            ProcessMessage<XmlDocument>(message);
-            ProcessMessage<string>(message);
+            EventType et = new(message.GetEventType());
+            Task task =_eventRepo.WriteEventAsync(et)
+                .ContinueWith( _ => 
+                {
+                    ProcessMessage<XmlDocument>(message);
+                    ProcessMessage<string>(message);
+                }, TaskContinuationOptions.NotOnFaulted);
         }
         private void ProcessMessage<T>(IBTTermSheet message)
         {
             foreach (var partner in _partnerService.GetPartners<T>())
             {
                 QueueMessage<T>? formattedMessage = partner.FormatMessage(message);
-                _logger.LogInformation("Processing message for partner {PartnerId} with target {TargetType} and format {TargetFormat}", partner.Id, partner.target.TargetType, partner.target.TargetFormat);
+                _logger.LogInformation("Processing message for partner {PartnerId} with target {TargetType} and format {TargetFormat}", partner.Id, partner.Target.TargetType, partner.Target.TargetFormat);
                 if (formattedMessage == null)
                 {
                     continue;
@@ -41,7 +50,7 @@ namespace VontobelTest.src.services
 
         private async Task StartProcessing(CancellationToken ct)
         {
-            await Task.Run(() =>
+            await Task.Run( () =>
             {
                 while (!ct.IsCancellationRequested)
                 {
