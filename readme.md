@@ -12,4 +12,4 @@ points for improvement:
 - better typing in general.
 - configuration -> blocking queues are instantiated with default settings, and much more could be configured in a config file.
 
-much more to say, but am to tire right now :)
+much more to say, but am to tired right now :)
