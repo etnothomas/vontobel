@@ -1,21 +1,22 @@
+namespace VontobelTest.src.Parsers;
+
 using System.Xml.Serialization;
 using System.IO;
 
-namespace VontobelTest.src.Parsers
+
+public static class XmlParser
 {
-    public static class XmlParser
+    public static T ParseXml<T>(string file)
     {
-        public static T ParseXml<T>(string file)
+        if (string.IsNullOrWhiteSpace(file))
+            throw new ArgumentException("XML input is empty", nameof(file));
+
+        var serializer = new XmlSerializer(typeof(T));
+        using (StreamReader reader = new(file))
         {
-            if (string.IsNullOrWhiteSpace(file))
-                throw new ArgumentException("XML input is empty", nameof(file));
-
-            var serializer = new XmlSerializer(typeof(T));
-            using (StreamReader reader = new(file))
-            {
-                return (T)serializer.Deserialize(reader)!;
-            };
+            return (T)serializer.Deserialize(reader)!;
         }
-
+        ;
     }
+
 }

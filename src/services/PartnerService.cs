@@ -1,3 +1,5 @@
+namespace VontobelTest.src.services;
+
 using System.Text.Json.Nodes;
 using VontobelTest.src.models;
 using System.Xml;
@@ -5,186 +7,167 @@ using VontobelTest.src.formatters;
 using VontobelTest.src.filters;
 using Microsoft.Extensions.Logging;
 
-
-namespace VontobelTest.src.services
+public class PartnerService : IPartnerService
 {
-    public class PartnerService : IPartnerService
+    private readonly string _partnerConfigDirectory;
+    private readonly ILogger<PartnerService> _logger;
+    List<Partner<string>> stringPartners = [];
+    List<Partner<XmlDocument>> xmlPartners = [];
+
+    public PartnerService(string partnerConfigDirectory, ILogger<PartnerService> logger)
     {
-        private readonly string _partnerConfigDirectory;
-        private readonly ILogger<PartnerService> _logger;
-        List<Partner<string>> stringPartners = [];
-        List<Partner<XmlDocument>> xmlPartners = [];
-
-        public PartnerService(string partnerConfigDirectory, ILogger<PartnerService> logger)
+        _partnerConfigDirectory = partnerConfigDirectory;
+        _logger = logger;
+        InitializePartners();
+    }
+    public List<Partner<T>> GetPartners<T>()
+    {
+        if (typeof(T) == typeof(string))
         {
-            _partnerConfigDirectory = partnerConfigDirectory;
-            _logger = logger;
-            InitializePartners();
+            return stringPartners.Cast<Partner<T>>().ToList();
         }
-        public List<Partner<T>> GetPartners<T>()
+        else if (typeof(T) == typeof(XmlDocument))
         {
-            if (typeof(T) == typeof(string))
-            {
-                return stringPartners.Cast<Partner<T>>().ToList();
-            }
-            else if (typeof(T) == typeof(XmlDocument))
-            {
-                return xmlPartners.Cast<Partner<T>>().ToList();
-            }
-            else
-            {
-                throw new ArgumentException($"Unsupported partner type requested: {typeof(T)}");
-            }
+            return xmlPartners.Cast<Partner<T>>().ToList();
         }
-        private JsonObject[] ReadPartnerConfigs() {
-            if (string.IsNullOrWhiteSpace(_partnerConfigDirectory) || !Directory.Exists(_partnerConfigDirectory))
-            {
-                return Array.Empty<JsonObject>();
-            }
-
-            var files = Directory.GetFiles(_partnerConfigDirectory, "*.json");
-            var configs = new List<JsonObject>(files.Length);
-
-            foreach (var file in files)
-            {
-                try
-                {
-                    var text = File.ReadAllText(file);
-                    var node = JsonNode.Parse(text);
-                    if (node is JsonObject obj)
-                    {
-                        configs.Add(obj);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to read partner config '{File}'", file);
-                }
-            }
-
-            return configs.ToArray();
-        }
-
-        private void InitializePartners() {
-            var configs = ReadPartnerConfigs();
-
-            foreach (var config in configs)
-            {
-                try
-                {
-                    var targetFormat = config["targetFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetFormat in config");
-                    var targetType = config["targetType"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetType in config");
-
-                    if (targetFormat == "text")
-                    {
-                        stringPartners.Add(createMailPartner(config));
-                    }
-                    else if (targetFormat == "xml")
-                    {
-                        xmlPartners.Add(createXmlPartner(config));
-                    }
-                    else
-                    {
-                        Console.Error.WriteLine($"Unsupported target type in config: {targetType}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Failed to create partner from config: {ex.Message}");
-                }
-            }
-        }
-
-
-
-        private Partner<string> createMailPartner(JsonObject config) {
-            var partnerId = config["partnerid"]?.GetValue<string>() ?? throw new ArgumentException("Missing partnerid in config");
-            var targetType = config["targetType"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetType in config");
-            var targetFormat = config["targetFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetFormat in config");
-            var targetDestination = config["targetDestination"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetDestination in config");
-            var outputFormat = config["outputFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing outputFormat in config");
-            var filter = config["fieldsFilter"]?.GetValue<string>() ?? throw new ArgumentException("Missing fieldsFilter in config");
-            var messageFilter = GetMessageFilter(config) ?? new EmptyMessageFilter();
-
-            var target = GetTarget(targetType, targetDestination, targetFormat);
-            var format = GetFormatter<string>(outputFormat);
-            var filterImplementation = GetFieldsFilter(filter);
-
-            return new Partner<string>(partnerId, target, format, filterImplementation, messageFilter);
-        }
-
-        private Partner<XmlDocument> createXmlPartner(JsonObject config) {
-            var partnerId = config["partnerid"]?.GetValue<string>() ?? throw new ArgumentException("Missing partnerid in config");
-            var targetType = config["targetType"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetType in config");
-            var targetFormat = config["targetFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetFormat in config");
-            var targetDestination = config["targetDestination"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetDestination in config");
-            var outputFormat = config["outputFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing outputFormat in config");
-            var fieldsFilter = config["fieldsFilter"]?.GetValue<string>() ?? throw new ArgumentException("Missing fieldsFilter in config");
-            var messageFilter = GetMessageFilter(config) ?? new EmptyMessageFilter();
-
-            var target = GetTarget(targetType, targetDestination, targetFormat);
-            var format = GetFormatter<XmlDocument>(outputFormat);
-            var filterImplementation = GetFieldsFilter(fieldsFilter);
-
-            return new Partner<XmlDocument>(partnerId, target, format, filterImplementation, messageFilter);
-        }
-
-        private ITarget GetTarget(string targetType, string targetDestination, string targetFormat)
+        else
         {
-            return targetType switch
-            {
-                "file" => new FileTarget(targetDestination, targetType, targetFormat),
-                "email" => new EmailTarget(targetDestination, targetType, targetFormat),
-                _ => throw new ArgumentException($"Unsupported target type given: {targetType}"),
-            };
+            throw new ArgumentException($"Unsupported partner type requested: {typeof(T)}");
+        }
+    }
+    private JsonObject[] ReadPartnerConfigs()
+    {
+        if (string.IsNullOrWhiteSpace(_partnerConfigDirectory) || !Directory.Exists(_partnerConfigDirectory))
+        {
+            return Array.Empty<JsonObject>();
         }
 
-        private static IFormat<T> GetFormatter<T>(string format)
+        var files = Directory.GetFiles(_partnerConfigDirectory, "*.json");
+        var configs = new List<JsonObject>(files.Length);
+
+        foreach (var file in files)
         {
             try
             {
-                Type t = Type.GetType(format) ?? throw new ArgumentException($"Failed to create instance of type: {format}");
-                var obj = Activator.CreateInstance(t);
-                if (obj is IFormat<T> formatInstance)
-                    return formatInstance;
-
-                throw new ArgumentException($"Created instance of type '{format}' does not implement IFormat<{typeof(T).Name}>");
+                var text = File.ReadAllText(file);
+                var node = JsonNode.Parse(text);
+                if (node is JsonObject obj)
+                {
+                    configs.Add(obj);
+                }
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Failed to create instance of type: {format}", ex);
+                _logger.LogError(ex, "Failed to read partner config '{File}'", file);
             }
         }
 
-        private static IFilter GetFieldsFilter(string filter)
-        {
-             try
-            {
-                Type t = Type.GetType(filter) ?? throw new ArgumentException($"Failed to create instance of type: {filter}");
-                var obj = Activator.CreateInstance(t);
-                if (obj is IFilter filterInstance)
-                    return filterInstance;
+        return configs.ToArray();
+    }
 
-                throw new ArgumentException($"Created instance of type '{filter}' does not implement IFilter");
+    private void InitializePartners()
+    {
+        var configs = ReadPartnerConfigs();
+
+        foreach (var config in configs)
+        {
+            try
+            {
+                var targetFormat = config["targetFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetFormat in config");
+                var targetType = config["targetType"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetType in config");
+
+                if (targetFormat == "text")
+                {
+                    stringPartners.Add(CreatePartner<string>(config));
+                }
+                else if (targetFormat == "xml")
+                {
+                    xmlPartners.Add(CreatePartner<XmlDocument>(config));
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Unsupported target type in config: {targetType}");
+                }
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Failed to create instance of type: {filter}", ex);
+                Console.Error.WriteLine($"Failed to create partner from config: {ex.Message}");
             }
         }
+    }
 
-        private static MessageFilter? GetMessageFilter(JsonObject config)
+    private Partner<T> CreatePartner<T>(JsonObject config)
+    {
+        var partnerId = config["partnerid"]?.GetValue<string>() ?? throw new ArgumentException("Missing partnerid in config");
+        var targetType = config["targetType"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetType in config");
+        var targetFormat = config["targetFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetFormat in config");
+        var targetDestination = config["targetDestination"]?.GetValue<string>() ?? throw new ArgumentException("Missing targetDestination in config");
+        var outputFormat = config["outputFormat"]?.GetValue<string>() ?? throw new ArgumentException("Missing outputFormat in config");
+        var fieldsFilter = config["fieldsFilter"]?.GetValue<string>() ?? throw new ArgumentException("Missing fieldsFilter in config");
+        var messageFilter = GetMessageFilter(config) ?? new EmptyMessageFilter();
+
+        var target = GetTarget(targetType, targetDestination, targetFormat);
+        var format = GetFormatter<T>(outputFormat);
+        var filterImplementation = GetFieldsFilter(fieldsFilter);
+
+        return new Partner<T>(partnerId, target, format, filterImplementation, messageFilter);
+    }
+
+    private ITarget GetTarget(string targetType, string targetDestination, string targetFormat)
+    {
+        return targetType switch
         {
-            if (config["messageFilter"] is not JsonObject filterNode) return new EmptyMessageFilter();
+            "file" => new FileTarget(targetDestination, targetType, targetFormat),
+            "email" => new EmailTarget(targetDestination, targetType, targetFormat),
+            _ => throw new ArgumentException($"Unsupported target type given: {targetType}"),
+        };
+    }
 
-            var fieldName = filterNode["property"]?.GetValue<string>();
-            var fieldValue = filterNode["value"]?.GetValue<string>();
-            var operatorType = filterNode["operator"]?.GetValue<string>();
+    private static IFormat<T> GetFormatter<T>(string format)
+    {
+        try
+        {
+            Type t = Type.GetType(format) ?? throw new ArgumentException($"Failed to create instance of type: {format}");
+            var obj = Activator.CreateInstance(t);
+            if (obj is IFormat<T> formatInstance)
+                return formatInstance;
 
-            if (fieldName == null || fieldValue == null || operatorType == null)
-                return new EmptyMessageFilter();
-
-            return new MessageFilter(fieldName, fieldValue, operatorType);
+            throw new ArgumentException($"Created instance of type '{format}' does not implement IFormat<{typeof(T).Name}>");
         }
+        catch (Exception ex)
+        {
+            throw new ArgumentException($"Failed to create instance of type: {format}", ex);
+        }
+    }
+
+    private static IFilter GetFieldsFilter(string filter)
+    {
+        try
+        {
+            Type t = Type.GetType(filter) ?? throw new ArgumentException($"Failed to create instance of type: {filter}");
+            var obj = Activator.CreateInstance(t);
+            if (obj is IFilter filterInstance)
+                return filterInstance;
+
+            throw new ArgumentException($"Created instance of type '{filter}' does not implement IFilter");
+        }
+        catch (Exception ex)
+        {
+            throw new ArgumentException($"Failed to create instance of type: {filter}", ex);
+        }
+    }
+
+    private static MessageFilter? GetMessageFilter(JsonObject config)
+    {
+        if (config["messageFilter"] is not JsonObject filterNode) return new EmptyMessageFilter();
+
+        var fieldName = filterNode["property"]?.GetValue<string>();
+        var fieldValue = filterNode["value"]?.GetValue<string>();
+        var operatorType = filterNode["operator"]?.GetValue<string>();
+
+        if (fieldName == null || fieldValue == null || operatorType == null)
+            return new EmptyMessageFilter();
+
+        return new MessageFilter(fieldName, fieldValue, operatorType);
     }
 }

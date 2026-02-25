@@ -1,27 +1,30 @@
+namespace VontobelTest.src.senders;
+
 using VontobelTest.src.models;
 
-namespace VontobelTest.src.senders
-{
-    public interface ISender<U>
-    {
-        public Task StartListener(CancellationToken ct);
-        public void EnqueueMessage(QueueMessage<U> message);
 
-        public void DoWithRetry(Action action, TimeSpan sleepPeriod, int tryCount = 3)
+public interface ISender<U>
+{
+    public Task StartListener(CancellationToken ct);
+    public void EnqueueMessage(QueueMessage<U> message);
+
+    public void DoWithRetry(Action action, TimeSpan sleepPeriod, int tryCount = 3)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tryCount);
+        while (true)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tryCount);
-            while (true) {
-            try {
+            try
+            {
                 action();
                 break; // success!
-            }  catch {
+            }
+            catch
+            {
                 if (--tryCount == 0)
                     throw;
                 Thread.Sleep(sleepPeriod);
-                }
             }
         }
-
-
     }
+
 }
